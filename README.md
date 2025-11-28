@@ -2,6 +2,10 @@
 
 A clean and modern weather-checking web application built using **HTML**, **CSS**, and **JavaScript**. The user can enter any location (city, state, or postcode), and the app fetches real-time weather data using the **WeatherAPI**.
 
+🔗 Live Demo
+
+Click here to open the Weather App
+
 ---
 
 ## 🚀 Features
