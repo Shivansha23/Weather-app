@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weather App</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#ffffff;
+      --accent:#00f2ff;
+      --muted:#666666;
+      --glass: rgba(255,255,255,0.8);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,#fff9e6 0%, #fffacd 60%);
+      color:#1a1a1a;
+    }
+
+    .app{
+      width:min(760px,96vw);background:var(--card);padding:28px;border-radius:14px;box-shadow:0 10px 30px rgba(255,215,0,0.3);
+      border:2px solid #ffd700;
+    }
+
+    header{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+    header h1{font-size:20px;margin:0}
+    header p{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:8px;margin-bottom:18px}
+    input[type="search"]{
+      flex:1;padding:12px 14px;border-radius:10px;border:2px solid #ffd700;background:var(--glass);color:inherit;font-size:15px;outline:none;
+    }
+    button{padding:10px 14px;border-radius:10px;border:none;background:var(--accent);color:#000000;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(255,215,0,0.4)}
+    button:disabled{opacity:0.6;cursor:default}
+
+    .card{display:grid;grid-template-columns:100px 1fr;gap:16px;align-items:center;padding:18px;border-radius:12px;background:linear-gradient(180deg, #ffffff, #fffef0);border:2px solid #ffd700;box-shadow:0 4px 12px rgba(255,215,0,0.2)}
+
+    .icon{width:100px;height:100px;display:flex;align-items:center;justify-content:center}
+    .temp{font-size:36px;font-weight:700}
+    .meta{color:var(--muted);font-size:14px}
+
+    .details{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+    .chip{background:#fff9e6;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid #ffd700}
+
+    .error{margin-top:12px;color:#cc0000;background:#ffe6e6;padding:10px;border-radius:8px;border:1px solid #ff6666}
+
+    .small{font-size:13px;color:var(--muted)}
+
+    .footer{margin-top:14px;text-align:right;color:var(--muted);font-size:12px}
+
+    @media (max-width:520px){
+      .card{grid-template-columns:80px 1fr}
+      .temp{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app" role="main">
+    <header>
+      <div>
+        <h1>Weather Checker</h1>
+        <p>Type a city, town or postcode and press <strong>Search</strong>.</p>
+      </div>
+    </header>
+
+    <section class="controls" aria-label="Search weather">
+      <input id="q" type="search" placeholder="e.g. London or 10001" value="London" aria-label="Location input" />
+      <button id="search">Search</button>
+    </section>
+
+    <section id="resultArea">
+      <!-- Results injected here -->
+    </section>
+
+    <div class="footer">Data from WeatherAPI.com</div>
+  </main>
+
+  <script>
+    // --- CONFIG ---
+    // You said you'll provide the API. Default below is the example you gave.
+    // If you want to use your own key, replace the value of apiKey.
+    const apiKey = '2df6ce18014e4392be5105939252811'; // <-- replace if you wish
+    const baseUrl = 'https://api.weatherapi.com/v1/current.json';
+
+    // DOM refs
+    const input = document.getElementById('q');
+    const btn = document.getElementById('search');
+    const resultArea = document.getElementById('resultArea');
+
+    function setLoading(isLoading){
+      btn.disabled = isLoading;
+      btn.textContent = isLoading ? 'Searching...' : 'Search';
+    }
+
+    function showError(msg){
+      resultArea.innerHTML = `<div class="error" role="alert">${escapeHtml(msg)}</div>`;
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]));
+    }
+
+    function renderWeather(data){
+      const loc = data.location;
+      const cur = data.current;
+      const celsius = cur.temp_c;
+      const fahrenheit = cur.temp_f;
+      const conditionText = cur.condition.text;
+      const icon = cur.condition.icon; // returns a //cdn.weatherapi.com/weather/64x64/... path
+      const humidity = cur.humidity;
+      const feels = cur.feelslike_c;
+      const wind_kph = cur.wind_kph;
+      const localtime = loc.localtime;
+
+      resultArea.innerHTML = `
+        <article class="card" aria-live="polite">
+          <div class="icon">
+            <img src="https:${icon}" alt="${escapeHtml(conditionText)} icon" width="80" height="80" />
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div>
+                <div class="temp">${celsius}°C <span style="font-size:16px;color:var(--muted);font-weight:600">(${fahrenheit}°F)</span></div>
+                <div class="small">${escapeHtml(loc.name)}, ${escapeHtml(loc.region || loc.country)} · ${escapeHtml(conditionText)}</div>
+              </div>
+              <div class="meta">Local time<br/><strong>${escapeHtml(localtime)}</strong></div>
+            </div>
+
+            <div class="details">
+              <div class="chip">Feels like: ${feels}°C</div>
+              <div class="chip">Humidity: ${humidity}%</div>
+              <div class="chip">Wind: ${wind_kph} kph</div>
+              <div class="chip">AQI: ${data.current.air_quality ? Math.round(data.current.air_quality['us-epa-index'] || 0) : 'N/A'}</div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    async function fetchWeather(query){
+      if(!query) return showError('Please enter a location.');
+      setLoading(true);
+      resultArea.innerHTML = '';
+      try{
+        const url = `${baseUrl}?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&aqi=yes`;
+        const resp = await fetch(url);
+        if(!resp.ok){
+          if(resp.status === 400) throw new Error('Bad request — try a different location.');
+          if(resp.status === 401) throw new Error('Unauthorized — check your API key.');
+          if(resp.status === 403) throw new Error('Forbidden — your API key may be restricted.');
+          if(resp.status === 429) throw new Error('Too many requests — rate limited by the API.');
+          throw new Error('Failed to fetch weather. HTTP ' + resp.status);
+        }
+        const data = await resp.json();
+        if(data && data.error) throw new Error(data.error.message || 'API error');
+        renderWeather(data);
+      }catch(err){
+        showError(err.message || 'An unexpected error occurred');
+        console.error(err);
+      }finally{
+        setLoading(false);
+      }
+    }
+
+    // handle enter key
+    input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') btn.click(); });
+    btn.addEventListener('click', ()=> fetchWeather(input.value.trim()));
+
+    // initial load
+    (function(){
+      // if there's a prefilled value, fetch automatically
+      if(input.value && input.value.trim() !== '') fetchWeather(input.value.trim());
+    })();
+  </script>
+</body>
+</html>
